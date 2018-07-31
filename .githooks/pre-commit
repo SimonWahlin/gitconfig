@@ -1,0 +1,34 @@
+#!C:\Program\ Files\PowerShell\6.0.0\pwsh.exe -File
+#!/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -File
+
+# This is a pre-commit hook that will run on each commit.
+
+$Pattern = '^origin\s+https://(\S+)\s\(push\)'
+$Origin = (& 'git' 'remote' '-v') -match $Pattern | Where-Object -FilterScript {$_ -is [string]}
+$RemoteDomain = if($Origin -match $Pattern) {$Matches[1]}
+$Email = & 'git' 'config' '--get' 'user.email' | Where-Object -FilterScript {$_ -is [string]}
+$DesiredEmail = switch -Wildcard ($RemoteDomain) {
+    'simonwahlin.visualstudio.com*' {
+        'simon@simonw.se'
+        break
+    }
+    'advaniase.visualstudio.com*' {
+        'simon.wahlin@knowledgefactory.se'
+        break
+    }
+    'github.com*' {
+        'simon.wahlin@gmail.com'
+        break
+    }
+    default {
+        'simon.wahlin@gmail.com'
+    }
+}
+
+if($Email -ne $DesiredEmail) {
+    Write-Warning -Message $PWD.Path
+    Write-Warning -Message 'WRONG EMAIL!'
+    Write-Warning -Message "Changing to: $DesiredEmail"
+    & 'git' 'config' '--local' 'user.email' $DesiredEmail
+    & 'git' 'commit' '--amend' '--reset-author' '-C' 'HEAD'
+}
